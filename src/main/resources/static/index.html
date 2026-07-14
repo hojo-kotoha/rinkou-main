@@ -55,6 +55,23 @@
                     ></textarea>
                 </div>
 
+                <!-- CSVファイル入力 -->
+                <div class="csv-input-wrapper">
+                    <label for="csv-file" class="text-area-label">
+                        CSVファイルから食材を登録
+                    </label>
+
+                    <input
+                            type="file"
+                            id="csv-file"
+                            accept=".csv,text/csv"
+                    >
+
+                    <p id="csv-status">
+                        「食材名・残り日数・数量・保存方法」のCSVに対応しています
+                    </p>
+                </div>
+
                 <!-- レシピ生成ボタン -->
                 <button class="btn btn--primary btn--generate" id="generate-button" type="button">
                     <span class="btn__icon">✨</span>

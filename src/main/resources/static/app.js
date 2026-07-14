@@ -33,6 +33,8 @@ let currentAudio = null;
 const micButton = document.getElementById('mic-button');
 const voiceStatus = document.getElementById('voice-status');
 const speechText = document.getElementById('speech-text');
+const csvFile = document.getElementById('csv-file');
+const csvStatus = document.getElementById('csv-status');
 const generateButton = document.getElementById('generate-button');
 const loadingOverlay = document.getElementById('loading-overlay');
 const loadingText = document.getElementById('loading-text');
@@ -179,6 +181,8 @@ function bindEvents() {
     // マイクボタン
     micButton.addEventListener('click', toggleRecording);
 
+    csvFile.addEventListener('change', handleCsvFile);
+
     // レシピ生成ボタン
     generateButton.addEventListener('click', handleGenerateRecipes);
 
@@ -186,6 +190,141 @@ function bindEvents() {
     prevButton.addEventListener('click', () => navigateStep(-1));
     nextButton.addEventListener('click', () => navigateStep(1));
     listenButton.addEventListener('click', playCurrentStepAudio);
+}
+
+// ==========================================
+// CSVファイル読み込み・DB登録
+// ==========================================
+
+async function handleCsvFile(event) {
+    const file = event.target.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        csvStatus.textContent = '⚠️ CSVファイルを選択してください';
+        csvFile.value = '';
+        return;
+    }
+
+    csvStatus.textContent =
+        `⏳ ${file.name}を読み込んでいます...`;
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+
+        const csvText = decodeCsvFile(arrayBuffer);
+
+        const ingredientsText =
+            convertCsvToIngredientsText(csvText);
+
+        // テキスト欄へ反映
+        speechText.value = ingredientsText;
+
+        // バックエンドAPIへCSV送信
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/ingredients/import', {
+            method: 'POST',
+            body: formData
+        });
+
+        const message = await response.text();
+
+        if (!response.ok) {
+            throw new Error(message);
+        }
+
+        csvStatus.textContent =
+            `✅ ${file.name}を読み込み、DBへ登録しました（${message}）`;
+
+        voiceStatus.textContent =
+            'CSVから食材をDBへ登録しました。内容を確認してください';
+
+    } catch (error) {
+        console.error('CSV読み込み・登録エラー:', error);
+
+        csvStatus.textContent =
+            `⚠️ CSVの読み込みまたはDB登録に失敗しました: ${error.message}`;
+    }
+}
+
+function decodeCsvFile(arrayBuffer) {
+    try {
+        const utf8Decoder = new TextDecoder('utf-8', {
+            fatal: true
+        });
+
+        return utf8Decoder.decode(arrayBuffer);
+
+    } catch (error) {
+        const shiftJisDecoder = new TextDecoder('shift_jis');
+        return shiftJisDecoder.decode(arrayBuffer);
+    }
+}
+
+function convertCsvToIngredientsText(csvText) {
+    const lines = csvText
+        .replace(/^\uFEFF/, '')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line !== '');
+
+    if (lines.length < 2) {
+        throw new Error('食材データがありません');
+    }
+
+    const headers = lines[0]
+        .replace(/^"|"$/g, '')
+        .split(',')
+        .map(header => header.trim().replace(/^"|"$/g, ''));
+
+    const requiredHeaders = [
+        '食材名',
+        '残り日数',
+        '数量',
+        '保存方法'
+    ];
+
+    for (const requiredHeader of requiredHeaders) {
+        if (!headers.includes(requiredHeader)) {
+            throw new Error(
+                `「${requiredHeader}」列がありません`
+            );
+        }
+    }
+
+    const nameIndex = headers.indexOf('食材名');
+    const daysIndex = headers.indexOf('残り日数');
+    const quantityIndex = headers.indexOf('数量');
+    const storageIndex = headers.indexOf('保存方法');
+
+    const ingredients = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const columns = lines[i]
+            .replace(/^"|"$/g, '')
+            .split(',')
+            .map(column => column.trim().replace(/^"|"$/g, ''));
+
+        const name = columns[nameIndex];
+        const days = columns[daysIndex];
+        const quantity = columns[quantityIndex];
+        const storage = columns[storageIndex];
+
+        if (!name || !days || !quantity || !storage) {
+            throw new Error(`${i + 1}行目のデータが不正です`);
+        }
+
+        ingredients.push(
+            `${name}（残り${days}日、数量：${quantity}、保存方法：${storage}）`
+        );
+    }
+
+    return ingredients.join('\n');
 }
 
 // ==========================================
