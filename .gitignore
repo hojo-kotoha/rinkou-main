@@ -1,2 +1,9 @@
 # プロジェクトの除外パス
 /target/
+
+data/
+*.mv.db
+*.trace.db
+target/
+
+.idea/
