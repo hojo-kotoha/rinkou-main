@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AIフードロス削減レシピナビ - 冷蔵庫の食材を音声入力し、AIが最適な消費レシピを提案。音声ナビゲーションで調理をサポート。">
+    <title>AIフードロス削減レシピナビ</title>
+
+    <!-- Google Fonts: Noto Sans JP + Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ===== ヘッダー ===== -->
+    <header class="header" id="header">
+        <div class="header__inner">
+            <div class="header__logo">
+                <span class="header__icon">🥗</span>
+                <h1 class="header__title">AIフードロス削減レシピナビ</h1>
+            </div>
+            <p class="header__subtitle">食材を声で入力 → AIがレシピを提案 → 音声で調理ナビ</p>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- ===== セクション1: 食材音声入力 ===== -->
+        <section class="section section--input" id="input-section">
+            <div class="section__header">
+                <span class="section__number">01</span>
+                <h2 class="section__title">食材を入力</h2>
+                <p class="section__description">マイクボタンを押して、冷蔵庫の食材と残り日数を話してください</p>
+            </div>
+
+            <div class="card card--glass">
+                <!-- 音声入力コントロール -->
+                <div class="voice-input" id="voice-input">
+                    <button class="mic-button" id="mic-button" type="button" aria-label="音声入力を開始">
+                        <span class="mic-button__icon">🎙️</span>
+                        <span class="mic-button__pulse"></span>
+                    </button>
+                    <p class="voice-input__status" id="voice-status">マイクボタンを押して話してください</p>
+                </div>
+
+                <!-- 認識テキスト表示・編集エリア -->
+                <div class="text-area-wrapper">
+                    <label for="speech-text" class="text-area-label">認識テキスト（編集可能）</label>
+                    <textarea
+                        id="speech-text"
+                        class="text-area"
+                        rows="4"
+                        placeholder="例: キャベツが残り1日、豚肉が残り3日、にんじんが残り5日"
+                    ></textarea>
+                </div>
+
+                <!-- レシピ生成ボタン -->
+                <button class="btn btn--primary btn--generate" id="generate-button" type="button">
+                    <span class="btn__icon">✨</span>
+                    <span class="btn__text">AIでレシピを生成</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ===== ローディングオーバーレイ ===== -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <span class="spinner-icon">🍳</span>
+                </div>
+                <p class="loading-text" id="loading-text">AIがレシピを考えています...</p>
+                <p class="loading-subtext">Gemini + Amazon Polly で処理中</p>
+            </div>
+        </div>
+
+        <!-- ===== セクション2: レシピ表示 ===== -->
+        <section class="section section--recipes hidden" id="recipe-section">
+            <div class="section__header">
+                <span class="section__number">02</span>
+                <h2 class="section__title">AIおすすめレシピ</h2>
+                <p class="section__description">消費期限が近い食材を優先的に使ったレシピです</p>
+            </div>
+
+            <!-- レシピタブ -->
+            <div class="tabs" id="recipe-tabs" role="tablist">
+                <!-- タブはJSで動的に生成 -->
+            </div>
+
+            <!-- レシピ詳細カード -->
+            <div class="recipe-cards" id="recipe-cards">
+                <!-- レシピカードはJSで動的に生成 -->
+            </div>
+        </section>
+
+        <!-- ===== セクション3: ステップバイステップ・ナビゲーション ===== -->
+        <section class="section section--steps hidden" id="step-section">
+            <div class="section__header">
+                <span class="section__number">03</span>
+                <h2 class="section__title">調理ナビゲーション</h2>
+                <p class="section__description">工程ごとに音声で案内します</p>
+            </div>
+
+            <div class="card card--glass step-navigator" id="step-navigator">
+                <!-- プログレスバー -->
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-bar__fill" id="progress-fill"></div>
+                    <span class="progress-bar__text" id="progress-text">工程 1 / 5</span>
+                </div>
+
+                <!-- 工程表示エリア -->
+                <div class="step-display" id="step-display">
+                    <span class="step-display__number" id="step-number">1</span>
+                    <p class="step-display__instruction" id="step-instruction">
+                        調理工程がここに表示されます
+                    </p>
+                </div>
+
+                <!-- コントロールボタン -->
+                <div class="step-controls">
+                    <button class="btn btn--control" id="prev-button" type="button" aria-label="前の工程">
+                        <span>◀</span>
+                        <span>前へ</span>
+                    </button>
+                    <button class="btn btn--listen" id="listen-button" type="button" aria-label="音声を再生">
+                        <span class="btn__icon">🔊</span>
+                        <span>聴く</span>
+                    </button>
+                    <button class="btn btn--control" id="next-button" type="button" aria-label="次の工程">
+                        <span>次へ</span>
+                        <span>▶</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== フッター ===== -->
+    <footer class="footer">
+        <p>🌱 フードロス削減で持続可能な食卓を</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
